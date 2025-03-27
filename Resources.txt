@@ -1,0 +1,10 @@
+
+List of resources for helping us implement our website. A few of these I have used
+in the past in highschool.
+- https://www.w3schools.com/
+- w3 schools is good for finding specific syntax for javascript, html and contains resources
+that we might want to look into
+- https://codehs.com/
+- codehs is what I used when learning html and javascript in high school
+- https://www.geeksforgeeks.org/
+- this one is pretty good too but I would rather use w3 schools because this one just has a ton of words
