@@ -1,10 +1,28 @@
 
 List of resources for helping us implement our website. A few of these I have used
-in the past in highschool.
+in the past in highschool. - Meghan
+
 - https://www.w3schools.com/
 - w3 schools is good for finding specific syntax for javascript, html and contains resources
 that we might want to look into
+
 - https://codehs.com/
 - codehs is what I used when learning html and javascript in high school
+
 - https://www.geeksforgeeks.org/
 - this one is pretty good too but I would rather use w3 schools because this one just has a ton of words
+
+- How to test the actual file itself (the .html file)
+    - drag the file from the file explorer on the side (it should just show the repo name in vscode its usually on the left side)
+    - drag it into any internet browser
+    - to see recent changes make sure to save your file and REFRESH the website that is loaded
+    - keep in mind that this is just locally hosting it, there is no server the data is coming from
+    - 
+
+- Do not forget to install the .html extensions for vscode and the javascript extensions too
+
+- javascript is kinda like our logical implementation vs HTML which is like our outline
+- HTML is the bread to hold the website together while javascript is our actual sandwhich ingredients
+- javascript is very similar to c imo, it isnt crazy, but it has to be implemented within the HTML code itself
+- CSS may be helpful, it just makes the website look nice but its in the programming style of HTML
+so it can be very tedious
