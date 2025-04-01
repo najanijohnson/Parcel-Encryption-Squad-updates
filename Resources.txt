@@ -21,8 +21,12 @@ that we might want to look into
 
 - Do not forget to install the .html extensions for vscode and the javascript extensions too
 
+- good for outlines and templates: https://github.com/bradtraversy/design-resources-for-developers#html--css-templates 
+
 - javascript is kinda like our logical implementation vs HTML which is like our outline
 - HTML is the bread to hold the website together while javascript is our actual sandwhich ingredients
 - javascript is very similar to c imo, it isnt crazy, but it has to be implemented within the HTML code itself
 - CSS may be helpful, it just makes the website look nice but its in the programming style of HTML
 so it can be very tedious
+
+- Webassembly might be worth looking into, its a method that helps run languages like C instead of javascript
