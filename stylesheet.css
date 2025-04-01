@@ -55,7 +55,9 @@ body {
   padding: 10px;
   text-align: center;
 }
-
+body {
+    background-color: #3b1b11; /* Blue background */
+}
 /* Responsive layout - makes the three columns stack on top of each other instead of next to each other */
 @media (max-width: 600px) {
   .grid-container  {
@@ -66,4 +68,6 @@ body {
       'right right right right right right' 
       'footer footer footer footer footer footer';
   }
+ 
+
 }
