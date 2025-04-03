@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Run Shiny App",
+        "type": "python",
+        "request": "launch",
+        "module": "shiny",
+        "args": ["run", "--reload", "my_app/app.py"],
+        "justMyCode": false
+      }
+    ]
+  }
+  
