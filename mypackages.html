@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Packages</title>
+  <link rel="stylesheet" href="stylesheet.css">
+</head>
+<body>
+  <div class="grid-container">
+    <div class="header">
+      <h2>My Packages</h2>
+    </div>
+
+    <div class="middle" style="background-color:#f4f4f4;">
+      <h3>Current Packages:</h3>
+      <div id="packages"></div>
+    </div>
+
+    <div class="footer">
+      <a href="/">← Back to Home</a>
+    </div>
+  </div>
+
+  <script>
+    // Load packages from the server
+    fetch('/packages')
+      .then(response => response.json())
+      .then(data => {
+        const container = document.getElementById('packages');
+        data.forEach((pkg, i) => {
+          const div = document.createElement('div');
+          div.innerHTML = `<p><strong>${pkg.name}</strong> - ${pkg.location}<br>Status: ${pkg.status}</p><hr>`;
+          container.appendChild(div);
+        });
+      });
+  </script>
+</body>
+</html>
