@@ -108,6 +108,7 @@ def server(input, output, session):
         status = register_business(name, address)
         session.send_custom_message("registration_status", {"value": status})
 
+    # When the drop-off button is clicked, call the drop-off notification logic
     @reactive.Effect
     @reactive.event(input.dropoff_btn)
     def handle_dropoff():
