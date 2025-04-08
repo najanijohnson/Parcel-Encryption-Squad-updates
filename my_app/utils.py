@@ -4,6 +4,7 @@ import string
 # In-memory database replacement for now
 registered_businesses = {}
 packages = {}
+test_pickup_codes = set()
 
 def generate_code(length=6):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
@@ -20,7 +21,7 @@ def notify_dropoff(tracking, business_code, recipient):
         return "Error: Business location code not recognized."
     if not tracking or not recipient:
         return "Error: Tracking number and recipient name are required."
-    
+
     pickup_code = generate_code(8)
     packages[pickup_code] = {
         "tracking": tracking,
@@ -36,6 +37,15 @@ def verify_pickup(pickup_code):
         return "Error: Invalid pickup code."
     if package["picked_up"]:
         return "This package has already been picked up."
-    
+
     package["picked_up"] = True
     return f"Pickup verified for {package['recipient']} (Tracking: {package['tracking']})."
+
+def generate_test_pickup_code():
+    code = generate_code(8)
+    test_pickup_codes.add(code)
+    return code
+
+def validate_test_pickup_code(entered_code, correct_code):
+    return entered_code == correct_code
+
