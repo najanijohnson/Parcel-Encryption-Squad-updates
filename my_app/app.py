@@ -9,7 +9,7 @@ from utils import (
 from shiny.types import ImgData
 from pathlib import Path
 
-# --- App UI ---
+#App UI ---
 app_ui = ui.page_fluid(
     ui.output_image("display_logo", inline=True),
     ui.br(),
