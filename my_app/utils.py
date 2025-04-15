@@ -49,3 +49,19 @@ def generate_test_pickup_code():
 def validate_test_pickup_code(entered_code, correct_code):
     return entered_code == correct_code
 
+def get_local_businesses():
+    """Returns a list of 25 local businesses."""
+    businesses = [
+        "McDonald's", "Walmart", "Target", "Starbucks", "Subway",
+        "Panda Express", "Dollar Tree", "Kroger", "Best Buy", "Home Depot",
+        "Joe's Pizza", "Sunny's Chinese Takeout", "QuickMart", "Green Grocers",
+        "Happy Donuts", "Big Al's Discount Store", "FreshMart", "Burger Barn",
+        "Tech Haven", "Books & More", "The Coffee Spot", "Taco Fiesta",
+        "Urban Outfitters", "Gadget Galaxy", "The Local Deli"
+    ]
+    return businesses
+
+def get_random_businesses_with_distances(businesses, count=10):
+    """Randomly selects businesses and assigns random distances."""
+    selected = random.sample(businesses, count)
+    return [f"{business} [{random.uniform(0.5, 10):.1f} miles away]" for business in selected]

@@ -4,12 +4,14 @@ from utils import (
     notify_dropoff,
     verify_pickup,
     generate_test_pickup_code,
-    validate_test_pickup_code
+    validate_test_pickup_code,
+    get_local_businesses,
+    get_random_businesses_with_distances
 )
 from shiny.types import ImgData
 from pathlib import Path
 
-#App UI ---
+# --- App UI ---
 app_ui = ui.page_fluid(
     ui.output_image("display_logo", inline=True),
     ui.br(),
@@ -22,12 +24,11 @@ app_ui = ui.page_fluid(
     ui.br(),
 
     ui.div(
-    ui.input_text("role_selected", label="", value=""),
-    style="display: none"
+        ui.input_text("role_selected", label="", value=""),
+        style="display: none"
     ),
-  # Hidden role selector
 
-    # Customer section
+    # --- Customer Section ---
     ui.panel_conditional("input.role_selected == 'customer'",
         ui.card(
             ui.h4("Test Customer Pickup"),
@@ -38,8 +39,23 @@ app_ui = ui.page_fluid(
             ui.output_text("pickup_status")
         )
     ),
+    ui.panel_conditional("output.pickup_status && output.pickup_status.includes('✅')",
+        ui.card(
+            ui.h4("Enter Your Address"),
+            ui.input_text("user_address", "Your Address"),
+            ui.input_action_button("save_address_btn", "Find Nearby Package Retrieval Centers", class_="btn-primary"),
+            ui.output_text("address_status")
+        )
+    ),
+    ui.panel_conditional("output.address_status && output.address_status.includes('✅')",
+        ui.card(
+            ui.h4("Nearby Package Retrieval Centers"),
+            ui.output_ui("retrieval_dropdown"),
+            ui.output_text("retrieval_center_status")
+        )
+    ),
 
-    # Partner section
+    # --- Partner Section ---
     ui.panel_conditional("input.role_selected == 'partner'",
         ui.card(
             ui.input_radio_buttons("partner_action", "Choose an option:",
@@ -74,6 +90,9 @@ app_ui = ui.page_fluid(
 def server(input, output, session):
     generated_code = reactive.Value("")
     pickup_result = reactive.Value("")
+    user_address = reactive.Value("")
+    local_businesses = get_local_businesses()
+    business_dropdown_choices = reactive.Value([])
 
     @reactive.Effect
     @reactive.event(input.role_customer)
@@ -100,6 +119,34 @@ def server(input, output, session):
         else:
             pickup_result.set("❌ **Sorry, that's not a valid pickup code. Please try again!**")
 
+    @output
+    @render.text
+    def pickup_status():
+        return pickup_result.get()
+
+    @reactive.Effect
+    @reactive.event(input.save_address_btn)
+    def save_address():
+        address = input.user_address()
+        if address:
+            user_address.set(address)
+            business_dropdown_choices.set(get_random_businesses_with_distances(local_businesses))
+        else:
+            business_dropdown_choices.set([])
+
+    @output
+    @render.ui
+    def retrieval_dropdown():
+        choices = business_dropdown_choices.get()
+        if not choices:
+            return ui.p("No centers available.")
+        return ui.input_select("retrieval_center", "Choose a Retrieval Center:", choices=choices)
+
+    @output
+    @render.text
+    def retrieval_center_status():
+        return f"Selected Center: {input.retrieval_center()}" if input.retrieval_center() else ""
+
     @reactive.Effect
     @reactive.event(input.register_btn)
     def handle_register():
@@ -108,7 +155,6 @@ def server(input, output, session):
         status = register_business(name, address)
         session.send_custom_message("registration_status", {"value": status})
 
-    # When the drop-off button is clicked, call the drop-off notification logic
     @reactive.Effect
     @reactive.event(input.dropoff_btn)
     def handle_dropoff():
@@ -125,8 +171,8 @@ def server(input, output, session):
 
     @output
     @render.text
-    def pickup_status():
-        return pickup_result.get()
+    def address_status():
+        return f"✅ Address saved: {user_address.get()}" if user_address.get() else ""
 
     @output
     @render.image
