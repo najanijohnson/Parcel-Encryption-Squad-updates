@@ -30,3 +30,8 @@ that we might want to look into
 so it can be very tedious
 
 - Webassembly might be worth looking into, its a method that helps run languages like C instead of javascript
+
+-compiling notes:
+-using wsl -> shiny
+just make sure youre in teh correct environment & directory
+shiny run --reload app.py
