@@ -65,3 +65,22 @@ def get_random_businesses_with_distances(businesses, count=10):
     """Randomly selects businesses and assigns random distances."""
     selected = random.sample(businesses, count)
     return [f"{business} [{random.uniform(0.5, 10):.1f} miles away]" for business in selected]
+
+def get_fake_contract_text():
+    return """
+    <h3>Business Registration Agreement</h3>
+    <p>
+    By registering your business with the Parcel Encryption Squad platform, you agree to the following terms:
+    </p>
+    <ul>
+        <li>You will ensure the security and privacy of all packages held at your business for retrieval.</li>
+        <li>You will not tamper with, open, or remove any items from any packages entrusted to your location.</li>
+        <li>You will promptly notify customers of drop-offs using the provided tools on this platform.</li>
+        <li>You agree to allow platform administrators to conduct virtual or in-person audits if necessary.</li>
+        <li>You will not share login credentials or sensitive customer information with unauthorized individuals.</li>
+        <li>You acknowledge that violations of this agreement may result in account suspension or removal.</li>
+    </ul>
+    <p>
+    Please review and check the agreement box below before proceeding with your business registration.
+    </p>
+    """
