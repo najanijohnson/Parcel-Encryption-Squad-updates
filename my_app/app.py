@@ -115,15 +115,28 @@ def server(input, output, session):
     temp_signup_info = reactive.Value({})
 
     local_businesses = get_local_businesses()
-
-    @reactive.Effect
+    # gets rid of the error with the react call for the address being alled to 
+    # package retrieval partner when swapped from customer to partner if saved 
+    @reactive.Effect ################################################## for customer role
     @reactive.event(input.role_customer)
     def _():
+        generated_code.set("")
+        pickup_result.set("")
+        user_address.set("")
+        business_dropdown_choices.set([])
+        temp_signup_info.set({})
+        
         session.send_input_message("role_selected", {"value": "customer"})
 
-    @reactive.Effect
+    @reactive.Effect ###################################################### for partner role
     @reactive.event(input.role_partner)
     def _():
+        generated_code.set("")
+        pickup_result.set("")
+        user_address.set("")
+        business_dropdown_choices.set([])
+        temp_signup_info.set({})
+        
         session.send_input_message("role_selected", {"value": "partner"})
 
     @reactive.Effect
@@ -144,12 +157,15 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.save_address_btn)
     def save_address():
+        if input.role_selected() != "customer": #should fix the error of seeing the address when not a customer
+            return
         address = input.user_address()
         if address:
             user_address.set(address)
             business_dropdown_choices.set(get_random_businesses_with_distances(local_businesses))
         else:
             business_dropdown_choices.set([])
+
 
     @output
     @render.ui
