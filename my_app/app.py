@@ -7,7 +7,8 @@ from utils import (
     validate_test_pickup_code,
     get_local_businesses,
     get_random_businesses_with_distances,
-    get_fake_contract_text
+    get_fake_contract_text,
+    is_valid_email
 )
 from shiny.types import ImgData
 from pathlib import Path
@@ -71,6 +72,7 @@ app_ui = ui.page_fluid(
                 ui.input_text("signup_name", "Business Name"),
                 ui.input_text("signup_address", "Business Address"),
                 ui.input_text("signup_email", "Email"),
+                ui.output_ui("email_warning_text"),
                 ui.input_password("signup_password", "Password"),
                 ui.input_password("signup_password_confirm", "Retype Password"),
                 ui.input_text("signup_employee_id", "Employee ID"),
@@ -81,7 +83,7 @@ app_ui = ui.page_fluid(
                 ui.output_text("signup_save_status")
             )
         ),
-
+     
         ui.panel_conditional("output.signup_save_status == '✅ Info saved'",
             ui.card(
                 ui.h4("Business Contract Agreement"),
@@ -108,19 +110,20 @@ app_ui = ui.page_fluid(
 
 # --- Server logic ---
 def server(input, output, session):
+    
     generated_code = reactive.Value("")
     pickup_result = reactive.Value("")
     user_address = reactive.Value("")
     business_dropdown_choices = reactive.Value([])
     temp_signup_info = reactive.Value({})
-
+    email_is_valid = reactive.Value(True)
     local_businesses = get_local_businesses()
     # gets rid of the error with the react call for the address being alled to 
     # package retrieval partner when swapped from customer to partner if saved 
     @reactive.Effect ################################################## for customer role
     @reactive.event(input.role_customer)
     def _():
-        generated_code.set("")
+        generated_code.set("") #this clears the fields so theres no overlap between roles
         pickup_result.set("")
         user_address.set("")
         business_dropdown_choices.set([])
@@ -166,6 +169,16 @@ def server(input, output, session):
         else:
             business_dropdown_choices.set([])
 
+    @output
+    @render.text
+    def email_validity_flag():
+        return "Valid email" if email_is_valid.get() else "Invalid email"
+    @output
+    @render.ui
+    def email_warning_text():
+        if not email_is_valid.get():
+            return ui.p("❌ Invalid email address", style="color: red")
+        return ""
 
     @output
     @render.ui
@@ -181,18 +194,29 @@ def server(input, output, session):
         return f"Selected Center: {input.retrieval_center()}" if input.retrieval_center() else ""
 
     @reactive.Effect
+    
     @reactive.event(input.save_signup_info)
-    def save_signup_info():
+    async def save_signup_info():
+        email = input.signup_email()
+        
+        #checking validity
+        if not is_valid_email(email):
+            email_is_valid.set(False)
+            #email = input.signup_email() #this causes crashes! DONT UNCOMMENT
+            await session.send_custom_message("signup_save_status", {"value": "❌ Invalid email address"})
+            return
+        email_is_valid.set(True)
+        # Save the signup information to a temporary storage
         temp_signup_info.set({
             "name": input.signup_name(),
             "address": input.signup_address(),
-            "email": input.signup_email(),
+            "email": email,
             "password": input.signup_password(),
             "confirm_password": input.signup_password_confirm(),
             "employee_id": input.signup_employee_id(),
             "role": input.signup_role()
         })
-        session.send_custom_message("signup_save_status", {"value": "✅ Info saved"})
+        await session.send_custom_message("signup_save_status", {"value": "✅ Info saved"})
 
     @reactive.Effect
     @reactive.event(input.final_register_btn)

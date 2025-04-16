@@ -1,3 +1,4 @@
+This is turning into a document of all the things I have learned while using Shiny:
 
 List of resources for helping us implement our website. A few of these I have used
 in the past in highschool. - Meghan
@@ -31,18 +32,22 @@ so it can be very tedious
 
 - Webassembly might be worth looking into, its a method that helps run languages like C instead of javascript
 
--compiling notes:
+-compiling notes:----------------------------------------------------------------------------------------
 -using wsl -> shiny
 just make sure youre in teh correct environment & directory
 shiny run --reload app.py
 
 
 To do: (-m)
-
+-   bug fixes
+        -   fixed the one of not isolating the react calls for customer and package retrieval partner.
+                -   i dont know the main cause still however, setting the all reacts when calling 
+                for either one seems to work and doesnt clear local vars but instead clears the actual
+                calls themselves. i dont know what they are actually called but that is what i am calling
+                them for now
 -   add constraints for when users click package retieval and register new buisness
         -   check that it is a valid email address
         -   if not please follow correct syntax
         -   password must also be 8 characters long 
         -   any empty field gives an error message
         -   make sure the buisness agreement doesnt pop up nless those error messages are resolved
-        -   

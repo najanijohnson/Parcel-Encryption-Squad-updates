@@ -84,3 +84,9 @@ def get_fake_contract_text():
     Please review and check the agreement box below before proceeding with your business registration.
     </p>
     """
+#new def validating email address
+def is_valid_email(email):
+    """Basic email validation."""
+    if "@" not in email and "." not in email and len(email) < 5: #basic check for @ and . and length
+        return False
+    return True
