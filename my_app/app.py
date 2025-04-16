@@ -75,6 +75,7 @@ app_ui = ui.page_fluid(
                 ui.output_ui("email_warning_text"),
                 ui.input_password("signup_password", "Password"),
                 ui.input_password("signup_password_confirm", "Retype Password"),
+                ui.output_ui("password_warning_text"),
                 ui.input_text("signup_employee_id", "Employee ID"),
                 ui.input_select("signup_role", "Your Role in the Company:",
                     choices=["CEO", "President", "Owner", "Manager", "Supervisor", "Other"]
@@ -110,7 +111,7 @@ app_ui = ui.page_fluid(
 
 # --- Server logic ---
 def server(input, output, session):
-    
+    passwords_match = reactive.Value(True)
     generated_code = reactive.Value("")
     pickup_result = reactive.Value("")
     user_address = reactive.Value("")
@@ -174,6 +175,19 @@ def server(input, output, session):
     def email_validity_flag():
         return "Valid email" if email_is_valid.get() else "Invalid email"
     @output
+    @render.text
+    def password_validity_flag():
+        if not password_is_valid.get():
+            return "❌ Passwords do not match"
+        return "✅ Passwords match"
+    @output
+    @render.ui
+    def password_warning_text():
+        if not passwords_match.get():
+            return ui.p("❌ Passwords do not match", style="color: red")
+        return ""
+
+    @output
     @render.ui
     def email_warning_text():
         if not email_is_valid.get():
@@ -198,7 +212,8 @@ def server(input, output, session):
     @reactive.event(input.save_signup_info)
     async def save_signup_info():
         email = input.signup_email()
-        
+        password = input.signup_password()
+        confirm = input.signup_password_confirm()
         #checking validity
         if not is_valid_email(email):
             email_is_valid.set(False)
@@ -206,13 +221,20 @@ def server(input, output, session):
             await session.send_custom_message("signup_save_status", {"value": "❌ Invalid email address"})
             return
         email_is_valid.set(True)
+        
+        if password != confirm:
+            passwords_match.set(False)
+            await session.send_custom_message("signup_save_status", {"value": "❌ Passwords do not match"})
+            return
+        passwords_match.set(True)   
+        
         # Save the signup information to a temporary storage
         temp_signup_info.set({
             "name": input.signup_name(),
             "address": input.signup_address(),
             "email": email,
-            "password": input.signup_password(),
-            "confirm_password": input.signup_password_confirm(),
+            "password": password,
+            "confirm_password": confirm,
             "employee_id": input.signup_employee_id(),
             "role": input.signup_role()
         })
