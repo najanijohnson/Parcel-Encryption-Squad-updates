@@ -87,7 +87,7 @@ app_ui = ui.page_fluid(
      
         ui.panel_conditional("output.signup_save_status == '✅ Info saved'",
             ui.card(
-                ui.h4("Business Contract Agreement"),
+                ui.h4("Agreements and Licensing"),
                 ui.output_ui("contract_text"),
                 ui.input_checkbox("contract_agree", "I agree to the terms and conditions"),
                 ui.input_action_button("final_register_btn", "Finalize Business Registration", class_="btn-success"),
@@ -118,6 +118,7 @@ def server(input, output, session):
     business_dropdown_choices = reactive.Value([])
     temp_signup_info = reactive.Value({})
     email_is_valid = reactive.Value(True)
+    password_is_valid = reactive.Value(True)
     local_businesses = get_local_businesses()
     # gets rid of the error with the react call for the address being alled to 
     # package retrieval partner when swapped from customer to partner if saved 
@@ -169,7 +170,7 @@ def server(input, output, session):
             business_dropdown_choices.set(get_random_businesses_with_distances(local_businesses))
         else:
             business_dropdown_choices.set([])
-
+#########################
     @output
     @render.text
     def email_validity_flag():
@@ -180,18 +181,29 @@ def server(input, output, session):
         if not password_is_valid.get():
             return "❌ Passwords do not match"
         return "✅ Passwords match"
+        
+   ######################
     @output
     @render.ui
     def password_warning_text():
+        password = input.signup_password()
+        confirm_password = input.signup_password_confirm()
+
+        # Check if passwords match
         if not passwords_match.get():
             return ui.p("❌ Passwords do not match", style="color: red")
+
+        # Check if password is at least 8 characters long
+        if len(password) < 8:
+            return ui.p("Password needs to be at least 8 characters", style="color: grey")
+
         return ""
 
     @output
     @render.ui
     def email_warning_text():
         if not email_is_valid.get():
-            return ui.p("❌ Invalid email address", style="color: red")
+            return ui.p("❌ Invalid email address. Please format it like this JohnDoe@email.com", style="color: red")
         return ""
 
     @output
@@ -228,6 +240,11 @@ def server(input, output, session):
             return
         passwords_match.set(True)   
         
+        if len(password) < 8:
+            password_is_valid.set(False)
+            await session.send_custom_message("signup_save_status", {"value": "❌ Password needs to be at least 8 characters"})
+            return
+        password_is_valid.set(True)
         # Save the signup information to a temporary storage
         temp_signup_info.set({
             "name": input.signup_name(),
@@ -282,7 +299,7 @@ def server(input, output, session):
     @render.image
     def display_logo():
         dir = Path(__file__).resolve().parent
-        img: ImgData = {"src": str(dir / "parcel-logo.jpg"), "width": "300px"}
+        img: ImgData = {"src": str(dir / "safedrop_logo.png"), "width": "500px"}
         return img
 
     @output
