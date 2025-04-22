@@ -131,6 +131,7 @@ app_ui = ui.page_fluid(
 
 # --- Server logic ---
 def server(input, output, session):
+    signin_result = reactive.Value("")
     passwords_match = reactive.Value(True)
     generated_code = reactive.Value("")
     pickup_result = reactive.Value("")
@@ -196,11 +197,11 @@ def server(input, output, session):
         email = input.signin_email()
         password = input.signin_password()
         
-        # Placeholder logic — replace with real check later
+        # Placeholder logic — replace with real check later session.send_custom -whatever only sends it in the actual cmd line
         if email == "test@email.com" and password == "password123":
-            session.send_custom_message("signin_status", {"value": "✅ Sign-In Successful!"})
+            signin_result.set("Sign-In Successful!")
         else:
-            session.send_custom_message("signin_status", {"value": "❌ Invalid credentials. Please try again."})
+            signin_result.set("Invalid credentials. Please try again.")
 
 #########################
     @reactive.Effect
@@ -216,7 +217,7 @@ def server(input, output, session):
     @output
     @render.text
     def signin_status():
-        return ""
+        return signin_result.get()
 
     @output
     @render.text
