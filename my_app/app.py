@@ -23,13 +23,33 @@ app_ui = ui.page_fluid(
     ui.h4("Are you a Customer or Package Retrieval Partner?"),
     ui.input_action_button("role_customer", "Customer", class_="btn-info"),
     ui.input_action_button("role_partner", "Package Retrieval Partner", class_="btn-secondary"),
+    ui.input_action_button("role_signin", "Sign-In", class_="btn-primary"), #added
     ui.br(),
 
     ui.div(
-        ui.input_text("role_selected", label="", value=""),
+        ui.input_text("role_selected", label="0", value="0"),
         style="display: none"
     ),
-
+    ui.panel_conditional("input.role_selected == 'signin'",
+        ui.card(
+            ui.h4("Sign-In"),
+            ui.input_text("signin_email", "Email"),
+            ui.input_password("signin_password", "Password"),
+            ui.input_action_button("signin_btn", "Sign In", class_="btn-primary"),
+            ui.output_text("signin_status")
+        )
+    ),
+    #used 0 because the null value didnt work -m
+    ui.panel_conditional("input.role_selected == '0'",
+        ui.card(
+            #here is where you can add flavor text for whatever instructions you want for prior load up before selecting a role
+            ui.h4("Welcome to Safe Drop! A secure community-driven package pickup system."),
+            ui.p("Please select a role to continue."),
+            ui.p("If you are a customer, you can generate a test pickup code and find nearby package retrieval centers. Please select 'Customer' for this option."),
+            ui.p("If you are a package retrieval partner, you can register your business or sign in to an existing one. Please select 'Package Retrieval Partner' for this option."),
+            ui.p("Click on 'Customer' or 'Package Retrieval Partner' to proceed."),
+        )
+    ),
     # --- Customer Section ---
     ui.panel_conditional("input.role_selected == 'customer'",
         ui.card(
@@ -170,7 +190,34 @@ def server(input, output, session):
             business_dropdown_choices.set(get_random_businesses_with_distances(local_businesses))
         else:
             business_dropdown_choices.set([])
+    @reactive.Effect
+    @reactive.event(input.signin_btn)
+    def handle_signin():
+        email = input.signin_email()
+        password = input.signin_password()
+        
+        # Placeholder logic — replace with real check later
+        if email == "test@email.com" and password == "password123":
+            session.send_custom_message("signin_status", {"value": "✅ Sign-In Successful!"})
+        else:
+            session.send_custom_message("signin_status", {"value": "❌ Invalid credentials. Please try again."})
+
 #########################
+    @reactive.Effect
+    @reactive.event(input.role_signin)
+    def _():
+        generated_code.set("")
+        pickup_result.set("")
+        user_address.set("")
+        business_dropdown_choices.set([])
+        temp_signup_info.set({})
+
+        session.send_input_message("role_selected", {"value": "signin"})
+    @output
+    @render.text
+    def signin_status():
+        return ""
+
     @output
     @render.text
     def email_validity_flag():
