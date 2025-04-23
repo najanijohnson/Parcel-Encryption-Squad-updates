@@ -44,9 +44,10 @@ app_ui = ui.page_fluid(
         ui.card(
             #here is where you can add flavor text for whatever instructions you want for prior load up before selecting a role
             ui.h4("Welcome to Safe Drop! A secure community-driven package pickup system."),
-            ui.p("If you are a customer, you can generate a test pickup code and find nearby package retrieval centers. Please select 'Customer' for this option."),
+            ui.p("If you are a customer, you can generate a test pickup code and find nearby package retrieval centers. Please select 'Customer' for this option. There is no need for signing in"),
+            ui.p("If you would like to register a package recieved by a business then please go to the sign in option and then select the Add Package option."),
             ui.p("If you are a package retrieval partner, you can register your business or sign in to an existing one. Please select 'Package Retrieval Partner' for this option."),
-            ui.p("Please select a role to continue."),
+            ui.p("Please select a tab to continue."),
             #ui.p("Click on 'Customer' or 'Package Retrieval Partner' to proceed."),
         )
     ),
