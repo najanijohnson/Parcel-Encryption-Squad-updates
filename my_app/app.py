@@ -12,6 +12,7 @@ from utils import (
 )
 from shiny.types import ImgData
 from pathlib import Path
+import asyncio
 
 #App UI ---
 app_ui = ui.page_fluid(
@@ -70,21 +71,31 @@ app_ui = ui.page_fluid(
             ui.card(
                 ui.h4("Business Sign Up Form"),
                 ui.input_text("signup_name", "Business Name"),
+                ui.output_ui("name_error"),
+
                 ui.input_text("signup_address", "Business Address"),
+                ui.output_ui("address_error"),
+
                 ui.input_text("signup_email", "Email"),
                 ui.output_ui("email_warning_text"),
+
                 ui.input_password("signup_password", "Password"),
                 ui.input_password("signup_password_confirm", "Retype Password"),
                 ui.output_ui("password_warning_text"),
+
                 ui.input_text("signup_employee_id", "Employee ID"),
+                ui.output_ui("employee_id_error"),
+
                 ui.input_select("signup_role", "Your Role in the Company:",
                     choices=["CEO", "President", "Owner", "Manager", "Supervisor", "Other"]
                 ),
+                ui.output_ui("role_error"),
+
                 ui.input_action_button("save_signup_info", "Save Information", class_="btn-primary"),
                 ui.output_text("signup_save_status")
             )
         ),
-     
+
         ui.panel_conditional("output.signup_save_status == '✅ Info saved'",
             ui.card(
                 ui.h4("Agreements and Licensing"),
@@ -119,21 +130,20 @@ def server(input, output, session):
     temp_signup_info = reactive.Value({})
     email_is_valid = reactive.Value(True)
     password_is_valid = reactive.Value(True)
+    signup_errors = reactive.Value({})
     local_businesses = get_local_businesses()
-    # gets rid of the error with the react call for the address being alled to 
-    # package retrieval partner when swapped from customer to partner if saved 
-    @reactive.Effect ################################################## for customer role
+
+    @reactive.Effect
     @reactive.event(input.role_customer)
     def _():
-        generated_code.set("") #this clears the fields so theres no overlap between roles
+        generated_code.set("")
         pickup_result.set("")
         user_address.set("")
         business_dropdown_choices.set([])
         temp_signup_info.set({})
-        
         session.send_input_message("role_selected", {"value": "customer"})
 
-    @reactive.Effect ###################################################### for partner role
+    @reactive.Effect
     @reactive.event(input.role_partner)
     def _():
         generated_code.set("")
@@ -141,7 +151,6 @@ def server(input, output, session):
         user_address.set("")
         business_dropdown_choices.set([])
         temp_signup_info.set({})
-        
         session.send_input_message("role_selected", {"value": "partner"})
 
     @reactive.Effect
@@ -162,7 +171,7 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.save_address_btn)
     def save_address():
-        if input.role_selected() != "customer": #should fix the error of seeing the address when not a customer
+        if input.role_selected() != "customer":
             return
         address = input.user_address()
         if address:
@@ -170,33 +179,16 @@ def server(input, output, session):
             business_dropdown_choices.set(get_random_businesses_with_distances(local_businesses))
         else:
             business_dropdown_choices.set([])
-#########################
-    @output
-    @render.text
-    def email_validity_flag():
-        return "Valid email" if email_is_valid.get() else "Invalid email"
-    @output
-    @render.text
-    def password_validity_flag():
-        if not password_is_valid.get():
-            return "❌ Passwords do not match"
-        return "✅ Passwords match"
-        
-   ######################
+
     @output
     @render.ui
     def password_warning_text():
         password = input.signup_password()
         confirm_password = input.signup_password_confirm()
-
-        # Check if passwords match
         if not passwords_match.get():
             return ui.p("❌ Passwords do not match", style="color: red")
-
-        # Check if password is at least 8 characters long
         if len(password) < 8:
-            return ui.p("Password needs to be at least 8 characters", style="color: grey")
-
+            return ui.p("Password needs to be at least 8 characters", style="color: red")
         return ""
 
     @output
@@ -205,6 +197,26 @@ def server(input, output, session):
         if not email_is_valid.get():
             return ui.p("❌ Invalid email address. Please format it like this JohnDoe@email.com", style="color: red")
         return ""
+
+    @output
+    @render.ui
+    def name_error():
+        return ui.p(signup_errors.get().get("name", ""), style="color: red")
+
+    @output
+    @render.ui
+    def address_error():
+        return ui.p(signup_errors.get().get("address", ""), style="color: red")
+
+    @output
+    @render.ui
+    def employee_id_error():
+        return ui.p(signup_errors.get().get("employee_id", ""), style="color: red")
+
+    @output
+    @render.ui
+    def role_error():
+        return ui.p(signup_errors.get().get("role", ""), style="color: red")
 
     @output
     @render.ui
@@ -220,53 +232,67 @@ def server(input, output, session):
         return f"Selected Center: {input.retrieval_center()}" if input.retrieval_center() else ""
 
     @reactive.Effect
-    
     @reactive.event(input.save_signup_info)
     async def save_signup_info():
         email = input.signup_email()
         password = input.signup_password()
-        confirm = input.signup_password_confirm()
-        #checking validity
+        confirm_password = input.signup_password_confirm()
+        errors = {}
+
+        if not input.signup_name().strip():
+            errors["name"] = "❌ You need to have a valid Business Name"
+        if not input.signup_address().strip():
+            errors["address"] = "❌ You need to have a valid Business Address"
+        if not input.signup_employee_id().strip():
+            errors["employee_id"] = "❌ You need to have a valid Employee ID"
+        if not input.signup_role().strip():
+            errors["role"] = "❌ You need to select a Role"
+
         if not is_valid_email(email):
             email_is_valid.set(False)
-            #email = input.signup_email() #this causes crashes! DONT UNCOMMENT
-            await session.send_custom_message("signup_save_status", {"value": "❌ Invalid email address"})
-            return
-        email_is_valid.set(True)
-        
-        if password != confirm:
+            errors["email"] = "❌ You need to have a valid Email"
+        else:
+            email_is_valid.set(True)
+
+        if not password or not confirm_password:
+            errors["password"] = "❌ Password fields cannot be empty"
+        elif password != confirm_password:
+            errors["password"] = "❌ Passwords do not match"
             passwords_match.set(False)
-            await session.send_custom_message("signup_save_status", {"value": "❌ Passwords do not match"})
-            return
-        passwords_match.set(True)   
-        
-        if len(password) < 8:
+        elif len(password) < 8:
+            errors["password"] = "❌ Password must be at least 8 characters"
             password_is_valid.set(False)
-            await session.send_custom_message("signup_save_status", {"value": "❌ Password needs to be at least 8 characters"})
+        else:
+            passwords_match.set(True)
+            password_is_valid.set(True)
+
+        if errors:
+            signup_errors.set(errors)
+            await session.send_custom_message("signup_save_status", {"value": ""})
             return
-        password_is_valid.set(True)
-        # Save the signup information to a temporary storage
+
+        signup_errors.set({})
         temp_signup_info.set({
             "name": input.signup_name(),
             "address": input.signup_address(),
             "email": email,
             "password": password,
-            "confirm_password": confirm,
+            "confirm_password": confirm_password,
             "employee_id": input.signup_employee_id(),
             "role": input.signup_role()
         })
-        await session.send_custom_message("signup_save_status", {"value": "✅ Info saved"})
+        session.send_input_message("signup_save_status", {"value": "✅ Info saved"})
 
     @reactive.Effect
     @reactive.event(input.final_register_btn)
-    def finalize_registration():
+    async def finalize_registration():
         if input.contract_agree():
             info = temp_signup_info.get()
-            session.send_custom_message("final_registration_status", {
+            session.send_input_message("final_registration_status", {
                 "value": f"✅ Business '{info['name']}' at '{info['address']}' registered."
             })
         else:
-            session.send_custom_message("final_registration_status", {
+            session.send_input_message("final_registration_status", {
                 "value": "❌ Please agree to the contract to proceed."
             })
 
