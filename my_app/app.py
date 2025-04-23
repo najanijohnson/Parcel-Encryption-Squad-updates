@@ -33,6 +33,7 @@ app_ui = ui.page_fluid(
     ui.panel_conditional("input.role_selected == 'signin'",
         ui.card(
             ui.h4("Sign-In"),
+            ui.p("Test Sign in: User: test@email.com Password: password123"),
             ui.input_text("signin_email", "Email"),
             ui.input_password("signin_password", "Password"),
             ui.input_action_button("signin_btn", "Sign In", class_="btn-primary"),
@@ -48,6 +49,7 @@ app_ui = ui.page_fluid(
             ui.p("If you would like to register a package recieved by a business then please go to the sign in option and then select the Add Package option."),
             ui.p("If you are a package retrieval partner, you can register your business or sign in to an existing one. Please select 'Package Retrieval Partner' for this option."),
             ui.p("Please select a tab to continue."),
+           
             #ui.p("Click on 'Customer' or 'Package Retrieval Partner' to proceed."),
         )
     ),
