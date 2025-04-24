@@ -2,56 +2,25 @@ import random
 import string
 import datetime
 
-# In-memory database replacement for now
-registered_businesses = {}
-packages = {}
+# Set to store valid test pickup codes for customers
 test_pickup_codes = set()
 
+# Generates a random alphanumeric code of specified length
 def generate_code(length=6):
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
-def register_business(name, address):
-    if not name or not address:
-        return "Error: Business name and address required."
-    code = generate_code()
-    registered_businesses[code] = {"name": name, "address": address}
-    return f"Registered '{name}' with code: {code}"
-
-def notify_dropoff(tracking, business_code, recipient):
-    if business_code not in registered_businesses:
-        return "Error: Business location code not recognized."
-    if not tracking or not recipient:
-        return "Error: Tracking number and recipient name are required."
-
-    pickup_code = generate_code(8)
-    packages[pickup_code] = {
-        "tracking": tracking,
-        "recipient": recipient,
-        "business_code": business_code,
-        "picked_up": False
-    }
-    return f"Drop-off recorded. Pickup Code for recipient: {pickup_code}"
-
-def verify_pickup(pickup_code):
-    package = packages.get(pickup_code)
-    if not package:
-        return "Error: Invalid pickup code."
-    if package["picked_up"]:
-        return "This package has already been picked up."
-
-    package["picked_up"] = True
-    return f"Pickup verified for {package['recipient']} (Tracking: {package['tracking']})."
-
+# Generates and stores a test pickup code specifically for customer testing
 def generate_test_pickup_code():
     code = generate_code(8)
     test_pickup_codes.add(code)
     return code
 
+# Validates a customer's entered pickup code against the correct one
 def validate_test_pickup_code(entered_code, correct_code):
-    return entered_code == correct_code
+    return entered_code.strip() == correct_code.strip()
 
+# Returns a static list of 25 fictional/local business names
 def get_local_businesses():
-    """Returns a list of 25 local businesses."""
     businesses = [
         "McDonald's", "Walmart", "Target", "Starbucks", "Subway",
         "Panda Express", "Dollar Tree", "Kroger", "Best Buy", "Home Depot",
@@ -62,44 +31,47 @@ def get_local_businesses():
     ]
     return businesses
 
+# Randomly selects `count` businesses and assigns each a fake distance
 def get_random_businesses_with_distances(businesses, count=10):
-    """Randomly selects businesses and assigns random distances."""
     selected = random.sample(businesses, count)
     return [f"{business} [{random.uniform(0.5, 10):.1f} miles away]" for business in selected]
 
+# Returns the HTML content for the business contract used during signup
 def get_fake_contract_text():
     return """
-    <h3>Business Registration Agreement</h3>
-    <p>
-    By registering your business with the Parcel Encryption Squad platform, you agree to the following terms:
-    </p>
-    <ul>
-        <li>You will ensure the security and privacy of all packages held at your business for retrieval.</li>
-        <li>You will not tamper with, open, or remove any items from any packages entrusted to your location.</li>
-        <li>You will promptly notify customers of drop-offs using the provided tools on this platform.</li>
-        <li>You agree to allow platform administrators to conduct virtual or in-person audits if necessary.</li>
-        <li>You will not share login credentials or sensitive customer information with unauthorized individuals.</li>
-        <li>You acknowledge that violations of this agreement may result in account suspension or removal.</li>
-    </ul>
-    <p>
-    Please review and check the agreement box below before proceeding with your business registration.
-    </p>
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 16px;">
+        <h3>Business Registration Agreement</h3>
+        <p>
+        By registering your business with the Parcel Encryption Squad platform, you agree to the following terms:
+        </p>
+        <ul>
+            <li>You will ensure the security and privacy of all packages held at your business for retrieval.</li>
+            <li>You will not tamper with, open, or remove any items from any packages entrusted to your location.</li>
+            <li>You will promptly notify customers of drop-offs using the provided tools on this platform.</li>
+            <li>You agree to allow platform administrators to conduct virtual or in-person audits if necessary.</li>
+            <li>You will not share login credentials or sensitive customer information with unauthorized individuals.</li>
+            <li>You acknowledge that violations of this agreement may result in account suspension or removal.</li>
+        </ul>
+        <p>
+        Please review and check the agreement box below before proceeding with your business registration.
+        </p>
+    </div>
     """
-#new def validating email address
-def is_valid_email(email):
-    """Basic email validation."""
-    if "@" not in email and "." not in email and len(email) < 5: #basic check for @ and . and length
-        return False
-    return True
 
-# Mock data to simulate packages in different states
+
+# Simple validation for email format — checks for presence of '@', '.', and minimum length
+def is_valid_email(email):
+    email = email.strip()
+    return "@" in email and "." in email and len(email) >= 5
+
+# In-memory database for storing packages in 3 states: on the way, ready, and picked up
 package_db = {
     "on_the_way": [],
     "ready_for_pickup": [],
     "picked_up": []
 }
 
-# Sample names for generation
+# Sample name pairs used to generate mock package data
 sample_names = [
     ("Amari", "Thompson"), ("Jordan", "Nguyen"), ("Morgan", "Lee"),
     ("Skyler", "Diaz"), ("Devon", "Taylor"), ("Riley", "Carter"),
@@ -113,6 +85,7 @@ sample_names = [
     ("Jules", "Wright"), ("Ari", "Ramirez"), ("Jaden", "Morgan")
 ]
 
+# Creates a dictionary representing a fake package with random attributes
 def generate_mock_package():
     first, last = random.choice(sample_names)
     tracking_id = f"PKG{random.randint(100000, 999999)}"
@@ -130,7 +103,7 @@ def generate_mock_package():
         "timestamp": timestamp.strftime("%I:%M %p")
     }
 
-# Initialize with random data
+# Populates the package database with 6 mock packages in each status bucket
 def initialize_mock_packages():
     for _ in range(6):
         package_db["on_the_way"].append(generate_mock_package())
@@ -144,8 +117,7 @@ def initialize_mock_packages():
         p["timestamp"] = datetime.datetime.now().strftime("%I:%M %p")
         package_db["picked_up"].append(p)
 
-
-# Move package between states
+# Moves a package from one state list to another based on tracking ID
 def move_package(tracking_id, from_state, to_state):
     for pkg in package_db[from_state]:
         if pkg["tracking_id"] == tracking_id:
@@ -156,11 +128,12 @@ def move_package(tracking_id, from_state, to_state):
             return True
     return False
 
-# Search package
+# Searches for a package across all states by name or tracking ID
 def search_package(query):
     results = []
+    query = query.lower().strip()
     for state in package_db:
         for pkg in package_db[state]:
-            if query.lower() in pkg["tracking_id"].lower() or query.lower() in pkg["name"].lower():
+            if query in pkg["tracking_id"].lower() or query in pkg["name"].lower():
                 results.append(pkg)
     return results
