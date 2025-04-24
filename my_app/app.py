@@ -20,17 +20,40 @@ app_ui = ui.page_fluid(
     ui.br(),
     ui.h2("Parcel Encryption Squad"),
     ui.p("A secure community-driven package pickup system."),
-
+  
     ui.h4("Are you a Customer or Package Retrieval Partner?"),
     ui.input_action_button("role_customer", "Customer", class_="btn-info"),
     ui.input_action_button("role_partner", "Package Retrieval Partner", class_="btn-secondary"),
+    ui.input_action_button("role_signin", "Sign-In", class_="btn-primary"), #added
     ui.br(),
 
     ui.div(
-        ui.input_text("role_selected", label="", value=""),
+        ui.input_text("role_selected", label="0", value="0"),
         style="display: none"
     ),
-
+    ui.panel_conditional("input.role_selected == 'signin'",
+        ui.card(
+            ui.h4("Sign-In"),
+            ui.p("Test Sign in: User: test@email.com Password: password123"),
+            ui.input_text("signin_email", "Email"),
+            ui.input_password("signin_password", "Password"),
+            ui.input_action_button("signin_btn", "Sign In", class_="btn-primary"),
+            ui.output_text("signin_status")
+        )
+    ),
+    #used 0 because the null value didnt work -m
+    ui.panel_conditional("input.role_selected == '0'",
+        ui.card(
+            #here is where you can add flavor text for whatever instructions you want for prior load up before selecting a role
+            ui.h4("Welcome to Safe Drop! A secure community-driven package pickup system."),
+            ui.p("If you are a customer, you can generate a test pickup code and find nearby package retrieval centers. Please select 'Customer' for this option. There is no need for signing in"),
+            ui.p("If you would like to register a package recieved by a business then please go to the sign in option and then select the Add Package option."),
+            ui.p("If you are a package retrieval partner, you can register your business or sign in to an existing one. Please select 'Package Retrieval Partner' for this option."),
+            ui.p("Please select a tab to continue."),
+           
+            #ui.p("Click on 'Customer' or 'Package Retrieval Partner' to proceed."),
+        )
+    ),
     # --- Customer Section ---
     ui.panel_conditional("input.role_selected == 'customer'",
         ui.card(
@@ -109,12 +132,14 @@ app_ui = ui.page_fluid(
         # Sign in to existing business
         ui.panel_conditional("input.partner_action == 'Sign in to existing business'",
             ui.card(
-                ui.h4("Notify Drop-Off"),
-                ui.input_text("tracking_number", "Package Tracking Number"),
-                ui.input_text("business_code", "Business Location Code"),
-                ui.input_text("recipient_name", "Recipient Name"),
-                ui.input_action_button("dropoff_btn", "Notify Drop-Off", class_="btn-primary"),
-                ui.output_text("dropoff_status")
+                ui.h4("Sign In to Existing Business"),
+                ui.output_text("reminder_credentials"),
+                ui.p("(You can use the sample login — Email: sample@biz.com | Password: sample123)"),
+                ui.input_text("partner_signin_email", "Email"),
+                ui.input_password("partner_signin_password", "Password"),
+                ui.input_action_button("partner_signin_btn", "Sign In", class_="btn-success"),
+                ui.output_text("partner_signin_status"),
+                ui.output_text("partner_signin_success_info")
             )
         )
     )
@@ -122,6 +147,7 @@ app_ui = ui.page_fluid(
 
 # --- Server logic ---
 def server(input, output, session):
+    signin_result = reactive.Value("")
     passwords_match = reactive.Value(True)
     generated_code = reactive.Value("")
     pickup_result = reactive.Value("")
@@ -132,6 +158,11 @@ def server(input, output, session):
     password_is_valid = reactive.Value(True)
     signup_errors = reactive.Value({})
     local_businesses = get_local_businesses()
+    final_status_message = reactive.Value("")
+    signin_result = reactive.Value("")
+    partner_signin_status_val = reactive.Value("")
+    partner_signin_success_val = reactive.Value("")
+
 
     @reactive.Effect
     @reactive.event(input.role_customer)
@@ -179,7 +210,46 @@ def server(input, output, session):
             business_dropdown_choices.set(get_random_businesses_with_distances(local_businesses))
         else:
             business_dropdown_choices.set([])
+    @reactive.Effect
+    @reactive.event(input.signin_btn)
+    def handle_signin():
+        email = input.signin_email()
+        password = input.signin_password()
+        
+        # Placeholder logic — replace with real check later session.send_custom -whatever only sends it in the actual cmd line
+        if email == "test@email.com" and password == "password123":
+            signin_result.set("Sign-In Successful!")
+        else:
+            signin_result.set("Invalid credentials. Please try again.")
 
+#########################
+    @reactive.Effect
+    @reactive.event(input.role_signin)
+    def _():
+        generated_code.set("")
+        pickup_result.set("")
+        user_address.set("")
+        business_dropdown_choices.set([])
+        temp_signup_info.set({})
+
+        session.send_input_message("role_selected", {"value": "signin"})
+    @output
+    @render.text
+    def signin_status():
+        return signin_result.get()
+
+    @output
+    @render.text
+    def email_validity_flag():
+        return "Valid email" if email_is_valid.get() else "Invalid email"
+    @output
+    @render.text
+    def password_validity_flag():
+        if not password_is_valid.get():
+            return "❌ Passwords do not match"
+        return "✅ Passwords match"
+        
+   ######################
     @output
     @render.ui
     def password_warning_text():
@@ -188,7 +258,7 @@ def server(input, output, session):
         if not passwords_match.get():
             return ui.p("❌ Passwords do not match", style="color: red")
         if len(password) < 8:
-            return ui.p("Password needs to be at least 8 characters", style="color: red")
+            return ui.p("Password needs to be at least 8 characters", style="color: grey")
         return ""
 
     @output
@@ -288,13 +358,53 @@ def server(input, output, session):
     async def finalize_registration():
         if input.contract_agree():
             info = temp_signup_info.get()
-            session.send_input_message("final_registration_status", {
-                "value": f"✅ Business '{info['name']}' at '{info['address']}' registered."
-            })
+            message = f"✅ {info['name']} at {info['address']} is registered successfully with SafeDrop."
+            final_status_message.set(message)
+            session.send_input_message("final_registration_status", {"value": message})
         else:
-            session.send_input_message("final_registration_status", {
-                "value": "❌ Please agree to the contract to proceed."
-            })
+            message = "❌ Please agree to the contract to proceed."
+            final_status_message.set(message)
+            session.send_input_message("final_registration_status", {"value": message})
+        
+
+    @reactive.Effect
+    @reactive.event(input.partner_signin_btn)
+    def handle_partner_signin():
+        email = input.partner_signin_email()
+        password = input.partner_signin_password()
+        info = temp_signup_info.get()
+
+        # If nothing was registered, use the sample login
+        if not info:
+            if email == "sample@biz.com" and password == "sample123":
+                partner_signin_status_val.set("✅ Sample login successful!")
+                partner_signin_success_val.set(
+                    "🎉 Welcome!\n"
+                    "Business Name: Sample Market\n"
+                    "Business Address: 123 Innovation Way\n"
+                    "Employee ID: A1001\n"
+                    "Role: CEO"
+                )
+            else:
+                partner_signin_status_val.set("❌ Incorrect credentials.")
+                partner_signin_success_val.set("")
+            return
+
+        # If business info *was* registered, match it
+        if email == info.get("email") and password == info.get("password"):
+            partner_signin_status_val.set("✅ Signed in successfully!")
+            partner_signin_success_val.set(
+                f"🎉 Welcome!\n"
+                f"Business Name: {info['name']}\n"
+                f"Business Address: {info['address']}\n"
+                f"Employee ID: {info['employee_id']}\n"
+                f"Role: {info['role']}"
+            )
+        else:
+            partner_signin_status_val.set("❌ Incorrect credentials.")
+            partner_signin_success_val.set("")
+
+
 
     @output
     @render.text
@@ -304,8 +414,25 @@ def server(input, output, session):
     @output
     @render.text
     def final_registration_status():
-        return ""
+        return final_status_message.get()
+    
+    @output
+    @render.text
+    def partner_signin_status():
+        return partner_signin_status_val.get()
 
+    @output
+    @render.text
+    def partner_signin_success_info():
+        return partner_signin_success_val.get()
+
+    @output
+    @render.text
+    def reminder_credentials():
+        info = temp_signup_info.get()
+        if info.get("email") and info.get("password"):
+            return f"(Reminder) Your email: {info['email']} | Your password: {info['password']}"
+        return ""
     @output
     @render.text
     def generated_code_display():

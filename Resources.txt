@@ -51,3 +51,8 @@ To do: (-m)
         -   password must also be 8 characters long 
         -   any empty field gives an error message
         -   make sure the buisness agreement doesnt pop up nless those error messages are resolved
+- sign in section
+- update og webpage with outline for 
+- load up page with instructions
+- original not under customer and package retrieval
+- pretty much done
