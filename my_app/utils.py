@@ -90,3 +90,58 @@ def is_valid_email(email):
     if "@" not in email and "." not in email and len(email) < 5: #basic check for @ and . and length
         return False
     return True
+
+# Mock data to simulate packages in different states
+package_db = {
+    "on_the_way": [],
+    "ready_for_pickup": [],
+    "picked_up": []
+}
+
+# Sample names for generation
+sample_names = [
+    ("Amari", "Thompson"), ("Jordan", "Nguyen"), ("Morgan", "Lee"),
+    ("Skyler", "Diaz"), ("Devon", "Taylor"), ("Riley", "Carter")
+]
+
+def generate_mock_package():
+    first, last = random.choice(sample_names)
+    tracking_id = f"PKG{random.randint(100000, 999999)}"
+    size = random.choice(["Small", "Medium", "Large"])
+    weight = f"{random.uniform(0.5, 10):.1f} lbs"
+    status = "on_the_way"
+    timestamp = datetime.datetime.now()
+
+    return {
+        "name": f"{first} {last}",
+        "tracking_id": tracking_id,
+        "size": size,
+        "weight": weight,
+        "status": status,
+        "timestamp": timestamp.strftime("%I:%M %p")
+    }
+
+# Initialize with random data
+def initialize_mock_packages(n=5):
+    for _ in range(n):
+        package_db["on_the_way"].append(generate_mock_package())
+
+# Move package between states
+def move_package(tracking_id, from_state, to_state):
+    for pkg in package_db[from_state]:
+        if pkg["tracking_id"] == tracking_id:
+            package_db[from_state].remove(pkg)
+            pkg["status"] = to_state
+            pkg["timestamp"] = datetime.datetime.now().strftime("%I:%M %p")
+            package_db[to_state].append(pkg)
+            return True
+    return False
+
+# Search package
+def search_package(query):
+    results = []
+    for state in package_db:
+        for pkg in package_db[state]:
+            if query.lower() in pkg["tracking_id"].lower() or query.lower() in pkg["name"].lower():
+                results.append(pkg)
+    return results
