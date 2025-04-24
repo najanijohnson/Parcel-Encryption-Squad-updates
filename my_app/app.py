@@ -227,7 +227,11 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.pickup_btn)
     def handle_pickup():
-        entered_code = input.pickup_code()
+        entered_code = input.pickup_code().strip()
+        if not entered_code:
+            pickup_result.set("❌ Please enter your pickup code before verifying.")
+            return
+        
         if validate_test_pickup_code(entered_code, generated_code.get()):
             pickup_result.set(f"✅ Pickup verified for code: {entered_code}")
         else:
@@ -247,7 +251,7 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.signin_btn)
     def handle_signin():
-        email = input.signin_email()
+        email = input.signup_email().strip().lower()
         password = input.signin_password()
         
         # Placeholder logic — replace with real check later session.send_custom -whatever only sends it in the actual cmd line
@@ -323,7 +327,7 @@ def server(input, output, session):
     @reactive.Effect
     @reactive.event(input.save_signup_info)
     async def save_signup_info():
-        email = input.signup_email()
+        email = input.signup_email().strip().lower()
         password = input.signup_password()
         confirm_password = input.signup_password_confirm()
         errors = {}
@@ -385,13 +389,28 @@ def server(input, output, session):
             final_status_message.set(message)
             session.send_input_message("final_registration_status", {"value": message})
         
+    @reactive.Effect
+    @reactive.event(input.partner_action)
+    def reset_signin_data():
+        # Clear previous success + status data when switching between register/sign in
+        partner_signin_success_val.set("")
+        partner_signin_status_val.set("")
 
     @reactive.Effect
     @reactive.event(input.partner_signin_btn)
     def handle_partner_signin():
-        email = input.partner_signin_email()
+        partner_signin_success_val.set("")  # Clear previous welcome message
+        partner_signin_status_val.set("")
+
+        email = input.partner_signin_email().strip().lower()
         password = input.partner_signin_password()
+
         info = temp_signup_info.get()
+
+        # Check if no registered info = sample login
+        if not info:
+            email = email.strip().lower()
+            password = password.strip()  # forgiving here
 
         # If nothing was registered, use the sample login
         if not info:
@@ -410,7 +429,7 @@ def server(input, output, session):
             return
 
         # If business info *was* registered, match it
-        if email == info.get("email") and password == info.get("password"):
+        if email == info.get("email").strip().lower() and password == info.get("password").strip():
             partner_signin_status_val.set("✅ Signed in successfully!")
             partner_signin_success_val.set(
                 f"🎉 Welcome!\n"
