@@ -8,7 +8,11 @@ from utils import (
     get_local_businesses,
     get_random_businesses_with_distances,
     get_fake_contract_text,
-    is_valid_email
+    is_valid_email,
+    package_db, 
+    move_package, 
+    search_package, 
+    initialize_mock_packages
 )
 from shiny.types import ImgData
 from pathlib import Path
@@ -18,40 +22,39 @@ import asyncio
 app_ui = ui.page_fluid(
     ui.output_image("display_logo", inline=True),
     ui.br(),
-    ui.h2("Parcel Encryption Squad"),
-    ui.p("A secure community-driven package pickup system."),
+    ui.h2("From the Parcel Encryption Squad", style="font-family: 'Brush Script MT', cursive; font-size: 32px; font-weight: bold; color: #4B0082;"),
+    ui.p("A secure community-driven package pickup system.", style="font-family: 'Trebuchet MS', sans-serif; font-size: 16px; letter-spacing: 0.5px; color: #333;"),
+
   
     ui.h4("Are you a Customer or Package Retrieval Partner?"),
     ui.input_action_button("role_customer", "Customer", class_="btn-info"),
     ui.input_action_button("role_partner", "Package Retrieval Partner", class_="btn-secondary"),
-    ui.input_action_button("role_signin", "Sign-In", class_="btn-primary"), #added
     ui.br(),
 
     ui.div(
         ui.input_text("role_selected", label="0", value="0"),
         style="display: none"
     ),
-    ui.panel_conditional("input.role_selected == 'signin'",
-        ui.card(
-            ui.h4("Sign-In"),
-            ui.p("Test Sign in: User: test@email.com Password: password123"),
-            ui.input_text("signin_email", "Email"),
-            ui.input_password("signin_password", "Password"),
-            ui.input_action_button("signin_btn", "Sign In", class_="btn-primary"),
-            ui.output_text("signin_status")
-        )
-    ),
     #used 0 because the null value didnt work -m
     ui.panel_conditional("input.role_selected == '0'",
         ui.card(
-            #here is where you can add flavor text for whatever instructions you want for prior load up before selecting a role
-            ui.h4("Welcome to Safe Drop! A secure community-driven package pickup system."),
-            ui.p("If you are a customer, you can generate a test pickup code and find nearby package retrieval centers. Please select 'Customer' for this option. There is no need for signing in"),
-            ui.p("If you would like to register a package recieved by a business then please go to the sign in option and then select the Add Package option."),
-            ui.p("If you are a package retrieval partner, you can register your business or sign in to an existing one. Please select 'Package Retrieval Partner' for this option."),
-            ui.p("Please select a tab to continue."),
-           
-            #ui.p("Click on 'Customer' or 'Package Retrieval Partner' to proceed."),
+            ui.h3("📦 Welcome to Safe Drop!", style="color: #4a4a4a; font-weight: bold;"),
+            ui.p("Created with care by the Parcel Encryption Squad™", style="font-style: italic; color: #6c757d;"),
+
+            ui.p("This is a secure, community-powered system designed to keep your packages safe and your porch pirates unemployed.", 
+                style="margin-top: 10px; font-size: 16px; line-height: 1.5;"),
+
+            ui.tags.ul(
+                ui.tags.li("👤 Are you a customer? Click the 'Customer' button to get a test pickup code and see nearby retrieval centers, no sign-in needed!", 
+                        style="margin-bottom: 10px;"),
+                ui.tags.li("🏪 Are you a package retrieval partner? Click 'Package Retrieval Partner' to register your business and manage deliveries like a boss.", 
+                        style="margin-bottom: 10px;")
+            ),
+
+            ui.p("That’s it. No fluff. No fuss.", style="font-weight: 600; font-style: italic; margin-top: 15px;"),
+
+            ui.p("💡 Fun fact: Najani, Meghan, and Kelvin didn’t just build a package system, they *engineered* the best pre-capstone project this side of campus. Sorry not sorry 🤷🏾‍♂️💅🏽",
+                style="color: #198754; font-weight: bold; font-family: 'Comic Sans MS', cursive; font-size: 15px; margin-top: 20px;")
         )
     ),
     # --- Customer Section ---
@@ -77,9 +80,12 @@ app_ui = ui.page_fluid(
         ui.card(
             ui.h4("Nearby Package Retrieval Centers"),
             ui.output_ui("retrieval_dropdown"),
-            ui.output_text("retrieval_center_status")
+            ui.output_text("retrieval_center_status"),
+            ui.input_action_button("lock_center_btn", "Lock In This Center", class_="btn-success"),
+            ui.output_text("thank_you_message")
         )
     ),
+
 
     # --- Partner Section ---
     ui.panel_conditional("input.role_selected == 'partner'",
@@ -141,7 +147,30 @@ app_ui = ui.page_fluid(
                 ui.output_text("partner_signin_status"),
                 ui.output_text("partner_signin_success_info")
             )
+        ),
+
+    # --- Package Management Dashboard (Visible After Partner Sign-In) ---
+        ui.panel_conditional("input.partner_action == 'Sign in to existing business' && output.partner_signin_status.includes('✅')",
+            ui.card(
+                ui.h4("📦 Package Management Dashboard"),
+                ui.input_text("search_query", "Search by name or tracking ID"),
+                ui.input_action_button("search_btn", "Search", class_="btn-info"),
+                ui.output_ui("search_results")
+            ),
+            ui.card(
+                ui.h4("🚚 Packages On the Way"),
+                ui.output_ui("on_the_way_list")
+            ),
+            ui.card(
+                ui.h4("📍 Ready for Pickup"),
+                ui.output_ui("ready_for_pickup_list")
+            ),
+            ui.card(
+                ui.h4("✅ Picked Up in the Last 24 Hours"),
+                ui.output_ui("picked_up_list")
+            )
         )
+
     )
 )
 
@@ -162,6 +191,11 @@ def server(input, output, session):
     signin_result = reactive.Value("")
     partner_signin_status_val = reactive.Value("")
     partner_signin_success_val = reactive.Value("")
+    button_clicks_ready = reactive.Value({})
+    button_clicks_picked = reactive.Value({})
+    thank_you_msg = reactive.Value("")
+
+
 
 
     @reactive.Effect
@@ -222,21 +256,6 @@ def server(input, output, session):
         else:
             signin_result.set("Invalid credentials. Please try again.")
 
-#########################
-    @reactive.Effect
-    @reactive.event(input.role_signin)
-    def _():
-        generated_code.set("")
-        pickup_result.set("")
-        user_address.set("")
-        business_dropdown_choices.set([])
-        temp_signup_info.set({})
-
-        session.send_input_message("role_selected", {"value": "signin"})
-    @output
-    @render.text
-    def signin_status():
-        return signin_result.get()
 
     @output
     @render.text
@@ -404,7 +423,120 @@ def server(input, output, session):
             partner_signin_status_val.set("❌ Incorrect credentials.")
             partner_signin_success_val.set("")
 
+    # Initialize package data when the app loads
+    initialize_mock_packages()
 
+    @reactive.Effect
+    @reactive.event(input.search_btn)
+    def handle_search():
+        query = input.search_query()
+        results = search_package(query)
+        session.send_input_message("search_results_data", {"value": results})
+
+    @output
+    @render.ui
+    def search_results():
+        query = input.search_query()
+        if not query:
+            return ui.p("No search input.")
+        results = search_package(query)
+        if not results:
+            return ui.p("No matching packages found.")
+        return ui.TagList(
+            *[
+                ui.card(
+                    ui.h5(pkg["name"]),
+                    ui.p(f"Tracking ID: {pkg['tracking_id']}"),
+                    ui.p(f"Status: {pkg['status']}"),
+                    ui.p(f"Size: {pkg['size']} | Weight: {pkg['weight']}"),
+                    ui.p(f"Last Updated: {pkg['timestamp']}")
+                )
+                for pkg in results
+            ]
+        )
+    
+    def package_card(pkg, from_state, to_state, btn_id):
+        tracking_id = pkg["tracking_id"]
+        was_clicked = False
+
+        if to_state == "ready_for_pickup":
+            was_clicked = button_clicks_ready.get().get(tracking_id, False)
+        elif to_state == "picked_up":
+            was_clicked = button_clicks_picked.get().get(tracking_id, False)
+
+        return ui.card(
+            ui.h5(pkg["name"]),
+            ui.p(f"Tracking ID: {tracking_id}"),
+            ui.p(f"Size: {pkg['size']} | Weight: {pkg['weight']}"),
+            ui.p(f"Last Updated: {pkg['timestamp']}"),
+            ui.input_action_button(f"{btn_id}_{tracking_id}", f"Mark as {to_state.replace('_', ' ').title()}", class_="btn-outline-secondary"),
+            ui.p(f"✅ Upon next system refresh, this will be moved to {to_state.replace('_', ' ').title()}.", style="color: green; font-weight: bold;") if was_clicked else ui.p("")
+        )
+
+
+    @output
+    @render.ui
+    def on_the_way_list():
+        return ui.TagList(
+            *[package_card(pkg, "on_the_way", "ready_for_pickup", "move_ready") for pkg in package_db["on_the_way"]]
+        )
+
+    @output
+    @render.ui
+    def ready_for_pickup_list():
+        return ui.TagList(
+            *[package_card(pkg, "ready_for_pickup", "picked_up", "move_picked") for pkg in package_db["ready_for_pickup"]]
+        )
+
+    @output
+    @render.ui
+    def picked_up_list():
+        return ui.TagList(
+            *[
+                ui.card(
+                    ui.h5(pkg["name"]),
+                    ui.p(f"Tracking ID: {pkg['tracking_id']}"),
+                    ui.p(f"Size: {pkg['size']} | Weight: {pkg['weight']}"),
+                    ui.p(f"Picked Up: {pkg['timestamp']}")
+                )
+                for pkg in package_db["picked_up"]
+            ]
+        )
+
+    @reactive.Effect
+    @reactive.event(
+        *[getattr(input, f"move_ready_{pkg['tracking_id']}") for pkg in package_db["on_the_way"]],
+        *[getattr(input, f"move_picked_{pkg['tracking_id']}") for pkg in package_db["ready_for_pickup"]]
+    )
+    def fake_move_message():
+        updated_ready = button_clicks_ready.get().copy()
+        updated_picked = button_clicks_picked.get().copy()
+
+        for pkg in package_db["on_the_way"]:
+            btn_id = f"move_ready_{pkg['tracking_id']}"
+            if getattr(input, btn_id, lambda: 0)() > 0:
+                updated_ready[pkg['tracking_id']] = True
+
+        for pkg in package_db["ready_for_pickup"]:
+            btn_id = f"move_picked_{pkg['tracking_id']}"
+            if getattr(input, btn_id, lambda: 0)() > 0:
+                updated_picked[pkg['tracking_id']] = True
+
+        button_clicks_ready.set(updated_ready)
+        button_clicks_picked.set(updated_picked)
+
+
+    @reactive.Effect
+    @reactive.event(input.lock_center_btn)
+    def lock_in_center():
+        center = input.retrieval_center()
+        if center:
+            thank_you_msg.set(f"🎉 Thank you for using SafeDrop! Your package is set to be delivered at **{center}**.")
+
+    @output
+    @render.text
+    def thank_you_message():
+        return thank_you_msg.get()
 
     @output
     @render.text

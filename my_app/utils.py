@@ -1,5 +1,6 @@
 import random
 import string
+import datetime
 
 # In-memory database replacement for now
 registered_businesses = {}
@@ -101,7 +102,15 @@ package_db = {
 # Sample names for generation
 sample_names = [
     ("Amari", "Thompson"), ("Jordan", "Nguyen"), ("Morgan", "Lee"),
-    ("Skyler", "Diaz"), ("Devon", "Taylor"), ("Riley", "Carter")
+    ("Skyler", "Diaz"), ("Devon", "Taylor"), ("Riley", "Carter"),
+    ("Sasha", "Green"), ("Casey", "Brooks"), ("Avery", "Kim"),
+    ("Blake", "Martinez"), ("Quinn", "Rivera"), ("Elliot", "Singh"),
+    ("Peyton", "Walker"), ("Jamie", "Robinson"), ("Cameron", "Shah"),
+    ("Kai", "Anderson"), ("Emery", "Nguyen"), ("Logan", "Brown"),
+    ("Phoenix", "Sullivan"), ("Rowan", "Jackson"), ("Reese", "Johnson"),
+    ("Alex", "Lopez"), ("Sage", "Thompson"), ("Charlie", "Bennett"),
+    ("Tatum", "King"), ("Noel", "Foster"), ("Kendall", "Young"),
+    ("Jules", "Wright"), ("Ari", "Ramirez"), ("Jaden", "Morgan")
 ]
 
 def generate_mock_package():
@@ -122,9 +131,19 @@ def generate_mock_package():
     }
 
 # Initialize with random data
-def initialize_mock_packages(n=5):
-    for _ in range(n):
+def initialize_mock_packages():
+    for _ in range(6):
         package_db["on_the_way"].append(generate_mock_package())
+    for _ in range(6):
+        p = generate_mock_package()
+        p["status"] = "ready_for_pickup"
+        package_db["ready_for_pickup"].append(p)
+    for _ in range(6):
+        p = generate_mock_package()
+        p["status"] = "picked_up"
+        p["timestamp"] = datetime.datetime.now().strftime("%I:%M %p")
+        package_db["picked_up"].append(p)
+
 
 # Move package between states
 def move_package(tracking_id, from_state, to_state):
