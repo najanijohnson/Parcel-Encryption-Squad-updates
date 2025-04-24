@@ -125,7 +125,7 @@ app_ui = ui.page_fluid(
             )
         ),
 
-        ui.panel_conditional("output.signup_save_status == '✅ Info saved'",
+        ui.panel_conditional("input.partner_action == 'Register a new business' && output.signup_save_status == '✅ Info saved'",
             ui.card(
                 ui.h4("Agreements and Licensing"),
                 ui.output_ui("contract_text"),
@@ -140,7 +140,7 @@ app_ui = ui.page_fluid(
             ui.card(
                 ui.h4("Sign In to Existing Business"),
                 ui.output_text("reminder_credentials"),
-                ui.p("(You can use the sample login — Email: sample@biz.com | Password: sample123)"),
+                ui.output_ui("sample_login_hint"),
                 ui.input_text("partner_signin_email", "Email"),
                 ui.input_password("partner_signin_password", "Password"),
                 ui.input_action_button("partner_signin_btn", "Sign In", class_="btn-success"),
@@ -524,6 +524,14 @@ def server(input, output, session):
 
         button_clicks_ready.set(updated_ready)
         button_clicks_picked.set(updated_picked)
+
+    @output
+    @render.ui
+    def sample_login_hint():
+        if not temp_signup_info.get():
+            return ui.p("(You can use the sample login — Email: sample@biz.com | Password: sample123)", style="color: gray; font-style: italic;")
+        return ""
+
 
 
     @reactive.Effect
